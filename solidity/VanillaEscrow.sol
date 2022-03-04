@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.5;
 
-contract Escrow {//Simple escrow
+contract  VanillaEscrow {//Simple escrow
     
     address public depositor;// The depositor will be the signer deploying the contract.
     address payable public beneficiary;
