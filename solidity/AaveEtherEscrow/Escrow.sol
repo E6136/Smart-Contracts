@@ -8,6 +8,7 @@ contract Escrow {
     address arbiter;
     address depositor;
     address beneficiary;
+    uint256 originalDeposit;
     
     IWETHGateway gateway = IWETHGateway(0xDcD33426BA191383f1c9B431A342498fdac73488);
     IERC20 aWETH = IERC20(0x030bA81f1c18d280636F32af80b9AAd02Cf0854e);
@@ -18,6 +19,7 @@ contract Escrow {
         arbiter = _arbiter;
         beneficiary = _beneficiary;
         depositor = msg.sender;
+        originalDeposit = msg.value;
 
         //Deposit ETH through the WETH gateway
         gateway.depositETH {value : address(this).balance} (address(this), 0);
@@ -36,6 +38,19 @@ contract Escrow {
         gateway.withdrawETH(type(uint256).max, address(this));/*We call withdrawETH on the WETHGateway to go from aWETH to ETH.
                                                                 This function assumes that the gateway has been approved to spend the aWETH tokens.
                                                                 Otherwise, the transferFrom will fail and the transacton will be reverted.*/
+
+        
+      /*In this Escrow the resulting ether withdrawn will be larger than the ether initially deposited, 
+        thanks to the interest earned in the AAVE protocol.
+        We will transfer the initial deposit, to the beneficiary as that was the payment they were promised.
+        As far as the interest, we will grant that to the depositor,
+        as they deposited the amount far in advance of the payment being sent.*/
+        (bool success, ) = payable(beneficiary).call {value: originalDeposit} ("");
+        require(success, "The transaction to the beneficiary has failed.");
+
+        selfdestruct(payable(depositor));/*After sending the agreed amount to the beneficiary,
+                                           the interest earned on AAVE is sent to the depositor 
+                                           and the contract is destroyed.*/
     }
     
 }
